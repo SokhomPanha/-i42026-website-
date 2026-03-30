@@ -1,0 +1,43 @@
+- name : Bild, Test, and Deploy
+    agent: {
+        name: 'agent1'
+    }
+    stages: pipeline {
+    agent {label 'laravel'}
+    stages {
+        stage('Build') {
+            steps {
+                sh '''
+                    composer install
+                    php artisan key:generate
+                    npm install
+                    npm run build
+                    
+                '''
+            }
+        }
+       
+        
+    }
+
+    post {
+        success {
+            node('laravel'){
+            sh """
+            curl -s -X POST https://api.telegram.org/bot8369729822:AAEfkaixGMP4D2Lf8ft4orBHxKrQwR96hOs/sendMessage \
+                 -d chat_id=11145551295 \
+                 -d text="✅ Build Success"
+            """
+            }
+        }
+        failure {
+            node ('laravel') {
+                sh '''
+                curl -s -X POST https://api.telegram.org/bot8369729822:AAEfkaixGMP4D2Lf8ft4orBHxKrQwR96hOs/sendMessage \
+                -d chat_id=1145551295 \
+                -d text="❌ Build Failed" 
+                '''
+            }
+        }
+    }
+}
