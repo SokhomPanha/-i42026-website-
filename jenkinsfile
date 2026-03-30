@@ -2,6 +2,7 @@ pipeline {
     agent { label 'agent1' }
 
     environment {
+        // NOTE: Move these to Jenkins Credentials for better security!
         TELEGRAM_BOT_TOKEN = '8369729822:AAEfkaixGMP4D2Lf8ft4orBHxKrQwR96hOs'
         TELEGRAM_CHAT_ID = '1145551295'
     }
@@ -18,20 +19,18 @@ pipeline {
                 sh 'composer install --no-interaction --prefer-dist'
             }
         }
+
         stage('Setup Environment') {
             steps {
                 sh '''
                 cp .env.example .env
                 php artisan key:generate
-                sudo apt-get update
-                sudo apt-get install php-sqlite3
-                mkdir -p database
-                touch database/database.sqlite
-                chmod 777 database/database.sqlite
-                # php artisan migrate --force
+                # We skip sudo apt-get here because the Jenkins agent doesn't have permission.
+                # The SQLite driver and migrations are now handled by Ansible in the Deploy stage.
                 '''
             }
         }
+
         stage('NPM Build') {
             steps {
                 sh 'npm install'
@@ -41,12 +40,15 @@ pipeline {
 
         stage('Run Tests') {
             steps {
+                // If tests require a database, ensure agent1 has php-sqlite3 installed by an admin.
+                // Otherwise, you can skip tests or use a mock database.
                 sh 'php artisan test'
             }
         }
 
         stage('Deploy with Ansible') {
             steps {
+                // This stage uses the playbooks.yml we fixed to install drivers and migrate
                 sh 'ansible-playbook -i inventory.ini playbooks.yml -v'
             }
         }
