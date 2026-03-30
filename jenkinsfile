@@ -28,7 +28,7 @@ pipeline {
                 mkdir -p database
                 touch database/database.sqlite
                 chmod 777 database/database.sqlite
-                php artisan migrate --force
+                # php artisan migrate --force
                 '''
             }
         }
