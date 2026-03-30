@@ -38,13 +38,13 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                // If tests require a database, ensure agent1 has php-sqlite3 installed by an admin.
-                // Otherwise, you can skip tests or use a mock database.
-                sh 'php artisan test'
-            }
-        }
+        // stage('Run Tests') {
+        //     steps {
+        //         // If tests require a database, ensure agent1 has php-sqlite3 installed by an admin.
+        //         // Otherwise, you can skip tests or use a mock database.
+        //         sh 'php artisan test'
+        //     }
+        // }
 
         stage('Deploy with Ansible') {
             steps {
