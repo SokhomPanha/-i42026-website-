@@ -18,17 +18,15 @@ pipeline {
 
         stage('Build & Prepare') {
             steps {
-                echo 'Installing Composer Dependencies...'
+                echo 'Installing Dependencies...'
                 sh 'composer install --no-interaction'
                 sh 'php artisan key:generate'
-                
-                echo 'Installing NPM...'
                 sh 'npm install'
                 
-                echo 'Building Assets with Vite (Low Resource Mode)...'
-                // We add --workers 1 and limit memory to stop the "Bus Error"
-                // This forces Vite to be less aggressive with your RAM
-                sh 'NODE_OPTIONS="--max-old-space-size=1024" npm run build -- --workers 1'
+                echo 'Building Assets with Memory Limits...'
+                // 1. We use max-old-space-size to limit Node RAM
+                // 2. We use UV_THREADPOOL_SIZE=1 to stop the multi-threading that causes Bus Errors
+                sh 'NODE_OPTIONS="--max-old-space-size=1024" UV_THREADPOOL_SIZE=1 npm run build'
             }
         }
 
