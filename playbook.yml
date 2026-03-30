@@ -44,7 +44,30 @@
     #   file:
     #     path: "{{ deploy_path }}/database/database.sqlite"
     #     state: touch
+    - name: Ensure PHP SQLite driver is installed
+      apt:
+        name: php-sqlite3  # or php8.2-sqlite3 depending on your server version
+        state: present
+        update_cache: yes
 
+    - name: Create SQLite database directory
+      file:
+        path: "{{ deploy_path }}/database"
+        state: directory
+        mode: '0755'
+
+    - name: Create SQLite database file
+      file:
+        path: "{{ deploy_path }}/database/database.sqlite"
+        state: touch
+        mode: '0777'
+
+    - name: Run database migrations
+      command: php artisan migrate --force
+      args:
+        chdir: "{{ deploy_path }}"
+
+    ##
     - name: Run database migrations
       command: php artisan migrate --force
       args:

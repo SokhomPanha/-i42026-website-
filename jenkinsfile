@@ -23,6 +23,8 @@ pipeline {
                 sh '''
                 cp .env.example .env
                 php artisan key:generate
+                sudo apt-get update
+                sudo apt-get install php-sqlite3
                 mkdir -p database
                 touch database/database.sqlite
                 chmod 777 database/database.sqlite
