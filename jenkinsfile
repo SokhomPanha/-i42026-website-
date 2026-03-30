@@ -23,7 +23,9 @@ pipeline {
             steps {
                 sh 'cp .env.example .env'
                 sh 'php artisan key:generate'
-                
+                sh 'apt update && apt install -y php-sqlite3'
+                sh 'touch database/database.sqlite'
+                sh 'chmod 777 database/database.sqlite'
                 sh 'php artisan migrate --force'
             }
         }
