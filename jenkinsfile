@@ -30,12 +30,7 @@ pipeline {
             }
         }
 
-        stage('Deploy via Ansible') {
-            steps {
-                echo 'Deploying to 178.128.93.188...'
-                sh "ansible-playbook -e 'ansible_ssh_common_args=\"-o StrictHostKeyChecking=no\"' -i /etc/ansible/inventory.ini /etc/ansible/playbook.yml"
-            }
-        }
+        
     }
 
     post {
