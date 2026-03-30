@@ -52,9 +52,16 @@
 
     - name: Create SQLite database directory
       file:
-        path: "{{ deploy_path }}/database"
-        state: directory
-        mode: '0755'
+        path: "{{ deploy_path }}/database/database.sqlite"
+        sstate: touch
+        owner: www-data
+        group: www-data
+        mode: '0777'
+
+    - name: Run database migrations
+      command: php artisan migrate --force
+      args:
+        chdir: "{{ deploy_path }}"
 
     - name: Create SQLite database file
       file:
