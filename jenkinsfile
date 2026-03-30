@@ -18,25 +18,18 @@ pipeline {
                 sh 'composer install --no-interaction --prefer-dist'
             }
         }
-stage('Setup Environment') {
-    steps {
-        sh '''
-        cp .env.example .env
-        php artisan key:generate
-
-        apt-get update
-        apt-get install -y php-sqlite3 sqlite3
-
-        
-        mkdir -p database
-        touch database/database.sqlite
-        chmod 777 database/database.sqlite
-
-       
-        php artisan migrate --force
-        '''
-    }
-}
+        stage('Setup Environment') {
+            steps {
+                sh '''
+                cp .env.example .env
+                php artisan key:generate
+                mkdir -p database
+                touch database/database.sqlite
+                chmod 777 database/database.sqlite
+                php artisan migrate --force
+                '''
+            }
+        }
         stage('NPM Build') {
             steps {
                 sh 'npm install'
