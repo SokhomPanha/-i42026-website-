@@ -5,15 +5,13 @@
     stages: pipeline {
     agent {label 'laravel'}
     stages {
-        stage('Build') {
+        stage('Build & Prepare') {
             steps {
-                sh '''
-                    composer install
-                    php artisan key:generate
-                    npm install
-                    npm run build
-                    
-                '''
+                echo 'Preparing .env and Building Assets...'
+                sh 'cp .env.example .env' // Add this line!
+                sh 'composer install --no-interaction'
+                sh 'php artisan key:generate' // Now this will work
+                sh 'npm install && npm run build'
             }
         }
        
