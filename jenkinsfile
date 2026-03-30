@@ -1,36 +1,40 @@
 pipeline {
-    agent { label 'agent1' } // Ensure your node in Jenkins has the label 'agent1'
+    agent { label 'agent1' }
 
     environment {
-        // Using variables makes the script cleaner and safer
         TELEGRAM_BOT_TOKEN = '8369729822:AAEfkaixGMP4D2Lf8ft4orBHxKrQwR96hOs'
         TELEGRAM_CHAT_ID = '1145551295'
     }
 
     stages {
+        stage('Cleanup & Setup') {
+            steps {
+                echo 'Cleaning up previous build artifacts...'
+                // Clear old node_modules and vite cache to prevent corruption
+                sh 'rm -rf node_modules/.vite'
+                sh 'cp .env.example .env'
+            }
+        }
+
         stage('Build & Prepare') {
             steps {
-                echo 'Preparing .env and Building Assets...'
-                sh 'cp .env.example .env'
-                
                 echo 'Installing Composer Dependencies...'
                 sh 'composer install --no-interaction'
-                
-                echo 'Generating App Key...'
                 sh 'php artisan key:generate'
                 
-                echo 'Installing NPM and Building Assets...'
+                echo 'Installing NPM...'
                 sh 'npm install'
                 
-                // Added NODE_OPTIONS to prevent "Bus error" by managing memory better
-                sh 'NODE_OPTIONS="--max-old-space-size=1024" npm run build'
+                echo 'Building Assets with Vite (Low Resource Mode)...'
+                // We add --workers 1 and limit memory to stop the "Bus Error"
+                // This forces Vite to be less aggressive with your RAM
+                sh 'NODE_OPTIONS="--max-old-space-size=1024" npm run build -- --workers 1'
             }
         }
 
         stage('Deploy via Ansible') {
             steps {
                 echo 'Deploying to 178.128.93.188...'
-                // Skip host key checking to prevent the build from hanging
                 sh "ansible-playbook -e 'ansible_ssh_common_args=\"-o StrictHostKeyChecking=no\"' -i /etc/ansible/inventory.ini /etc/ansible/playbook.yml"
             }
         }
