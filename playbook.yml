@@ -35,7 +35,11 @@
       command: php artisan key:generate
       args:
         chdir: "{{ deploy_path }}"
-
+    - name: Ensure PHP SQLite driver is installed
+      apt:
+        name: php-sqlite3
+        state: present
+        update_cache: yes
     - name: Create SQLite database
       file:
         path: "{{ deploy_path }}/database/database.sqlite"
