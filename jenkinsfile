@@ -48,6 +48,7 @@ pipeline {
 
         stage('Deploy with Ansible') {
             steps {
+                sh 'ls -R'
                 // This stage uses the playbooks.yml we fixed to install drivers and migrate
                 sh 'ansible-playbook -i /i42026-website/inventory.ini /i42026-website/playbooks.yml -v'
             }
