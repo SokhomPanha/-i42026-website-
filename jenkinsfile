@@ -1,41 +1,55 @@
+pipeline {
+    agent { label 'agent1' } // Ensure your node in Jenkins has the label 'agent1'
 
-    agent: {
-        name: 'agent1'
+    environment {
+        // Using variables makes the script cleaner and safer
+        TELEGRAM_BOT_TOKEN = '8369729822:AAEfkaixGMP4D2Lf8ft4orBHxKrQwR96hOs'
+        TELEGRAM_CHAT_ID = '1145551295'
     }
-    stages: pipeline {
-    agent {label 'laravel'}
+
     stages {
         stage('Build & Prepare') {
             steps {
                 echo 'Preparing .env and Building Assets...'
-                sh 'cp .env.example .env' // Add this line!
+                sh 'cp .env.example .env'
+                
+                echo 'Installing Composer Dependencies...'
                 sh 'composer install --no-interaction'
-                sh 'php artisan key:generate' // Now this will work
-                sh 'npm install && npm run build'
+                
+                echo 'Generating App Key...'
+                sh 'php artisan key:generate'
+                
+                echo 'Installing NPM and Building Assets...'
+                sh 'npm install'
+                
+                // Added NODE_OPTIONS to prevent "Bus error" by managing memory better
+                sh 'NODE_OPTIONS="--max-old-space-size=1024" npm run build'
             }
         }
-       
-        
+
+        stage('Deploy via Ansible') {
+            steps {
+                echo 'Deploying to 178.128.93.188...'
+                // Skip host key checking to prevent the build from hanging
+                sh "ansible-playbook -e 'ansible_ssh_common_args=\"-o StrictHostKeyChecking=no\"' -i /etc/ansible/inventory.ini /etc/ansible/playbook.yml"
+            }
+        }
     }
 
     post {
         success {
-            node('laravel'){
             sh """
-            curl -s -X POST https://api.telegram.org/bot8369729822:AAEfkaixGMP4D2Lf8ft4orBHxKrQwR96hOs/sendMessage \
-                 -d chat_id=11145551295 \
-                 -d text="✅ Build Success"
+            curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
+                 -d chat_id=${TELEGRAM_CHAT_ID} \
+                 -d text="✅ Build & Deploy Success for ${env.JOB_NAME} #${env.BUILD_NUMBER}"
             """
-            }
         }
         failure {
-            node ('laravel') {
-                sh '''
-                curl -s -X POST https://api.telegram.org/bot8369729822:AAEfkaixGMP4D2Lf8ft4orBHxKrQwR96hOs/sendMessage \
-                -d chat_id=1145551295 \
-                -d text="❌ Build Failed" 
-                '''
-            }
+            sh """
+            curl -s -X POST https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
+                 -d chat_id=${TELEGRAM_CHAT_ID} \
+                 -d text="❌ Build Failed for ${env.JOB_NAME} #${env.BUILD_NUMBER}. Check Jenkins console!"
+            """
         }
     }
 }
