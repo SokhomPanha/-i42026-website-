@@ -1,85 +1,97 @@
-- name: Deploy Laravel project SokhomPanha
-  hosts: server
+- name: Deploy Laravel Application
+  hosts: i4bserver
   become: yes
-
   vars:
-    deploy_path: /var/www/SokhomPanha
-    repo_url: https://github.com/SokhomPanha/-i42026-website-.git
+    deploy_user: root
+    app_path: /var/www/SokhomPanha
+    github_repo: https://github.com/SokhomPanha/-i42026-website-.git
 
   tasks:
-    - name: Add safe directory for git
-      command: git config --global --add safe.directory {{ deploy_path }}
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
 
-    - name: Clone or update Laravel project
-      git:
-        repo: "{{ repo_url }}"
-        dest: "{{ deploy_path }}"
-        version: main
-        force: yes
+    - name: Install required packages
+      apt:
+        name:
+          - nginx
+          - php8.2-fpm
+          - php8.2-mysql
+          - php8.2-cli
+          - php8.2-xml
+          - php8.2-mbstring
+          - php8.2-curl
+          - php8.2-zip
+          - unzip
+          - git
+        state: present
 
-    - name: Install Composer dependencies
-      command: composer install --no-dev --no-interaction --optimize-autoloader
-      args:
-        chdir: "{{ deploy_path }}"
-      environment:
-        COMPOSER_ALLOW_SUPERUSER: "1"
-
-    - name: Copy .env file if not exists
-      copy:
-        src: "{{ deploy_path }}/.env.example"
-        dest: "{{ deploy_path }}/.env"
-        remote_src: yes
-        force: no
-
-    - name: Generate application key
-      command: php artisan key:generate --force
-      args:
-        chdir: "{{ deploy_path }}"
-
-    # ✅ Clean SQLite database (IMPORTANT FIX)
-    - name: Remove old SQLite database
+    - name: Create deployment directory
       file:
-        path: "{{ deploy_path }}/database/database.sqlite"
-        state: absent
-
-    - name: Recreate SQLite database file
-      file:
-        path: "{{ deploy_path }}/database/database.sqlite"
-        state: touch
-        owner: www-data
-        group: www-data
-        mode: '0664'
-
-    - name: Create database directory
-      file:
-        path: "{{ deploy_path }}/database"
+        path: "{{ app_path }}"
         state: directory
         mode: '0755'
 
-    # ✅ Use migrate:fresh to avoid table conflicts
-    - name: Run database migrations (fresh)
-      command: php artisan migrate:fresh --force
-      args:
-        chdir: "{{ deploy_path }}"
+    - name: Configure git safe directory
+      shell: git config --global --add safe.directory {{ app_path }}
+      ignore_errors: yes
 
-    - name: Install frontend dependencies
-      command: npm ci
-      args:
-        chdir: "{{ deploy_path }}"
+    - name: Clone Laravel repository
+      git:
+        repo: "{{ github_repo }}"
+        dest: "{{ app_path }}"
+        version: laravel
+        force: yes
+    - name: Install Composer
+      shell: |
+        curl -sS https://getcomposer.org/installer | php
+        mv composer.phar /usr/local/bin/composer
+        chmod +x /usr/local/bin/composer
 
-    - name: Build frontend assets
-      command: npm run build
-      args:
-        chdir: "{{ deploy_path }}"
+    - name: Install Laravel dependencies
+      shell: |
+        cd {{ app_path }}
+        composer install --no-interaction --prefer-dist --optimize-autoloader
 
-    - name: Optimize Laravel
-      command: php artisan config:cache
-      args:
-        chdir: "{{ deploy_path }}"
+    - name: Create .env file
+      template:
+        src: .env.j2
+        dest: "{{ app_path }}/.env"
+      ignore_errors: yes
 
-    - name: Set final permissions
+    - name: Generate application key
+      shell: |
+        cd {{ app_path }}
+        php artisan key:generate --force
+      ignore_errors: yes
+
+    - name: Set permissions
+      shell: |
+        chmod -R 755 {{ app_path }}
+        chmod -R 775 {{ app_path }}/storage
+        chmod -R 775 {{ app_path }}/bootstrap/cache
+      ignore_errors: yes
+
+    - name: Enable Laravel site
       file:
-        path: "{{ deploy_path }}"
-        owner: www-data
-        group: www-data
-        recurse: yes
+        src: /etc/nginx/sites-available/laravel
+        dest: /etc/nginx/sites-enabled/laravel
+        state: link
+      notify: Restart Nginx
+
+    - name: Remove default nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Restart Nginx
+
+    - name: Test nginx configuration
+      shell: nginx -t
+      notify: Restart Nginx
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
