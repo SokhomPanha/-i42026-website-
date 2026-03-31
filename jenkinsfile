@@ -38,19 +38,19 @@ pipeline {
             }
         }
 
-        // stage('Run Tests') {
-        //     steps {
-        //         // If tests require a database, ensure agent1 has php-sqlite3 installed by an admin.
-        //         // Otherwise, you can skip tests or use a mock database.
-        //         sh 'php artisan test'
-        //     }
-        // }
+        stage('Run Tests') {
+            steps {
+                // If tests require a database, ensure agent1 has php-sqlite3 installed by an admin.
+                // Otherwise, you can skip tests or use a mock database.
+                sh 'php artisan test'
+            }
+        }
 
         stage('Deploy with Ansible') {
             steps {
                
                 // This stage uses the playbooks.yml we fixed to install drivers and migrate
-                sh "ansible-playbook -i ${WORKSPACE}/inventory.ini ${WORKSPACE}/playbooks.yml -v"
+                sh "ansible-playbook -i inventory.ini playbooks.yml -v"
             }
         }
     }
