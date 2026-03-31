@@ -38,7 +38,7 @@ pipeline {
             steps {
                
                 // This stage uses the playbooks.yml we fixed to install drivers and migrate
-                sh "ansible-playbook -i inventory.ini playbooks.yml -v"
+                sh "ansible-playbook -i inventory.ini playbook.yml -v"
             }
         }
     }
