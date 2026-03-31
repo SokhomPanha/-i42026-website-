@@ -31,12 +31,6 @@ pipeline {
             }
         }
 
-        stage('NPM Build') {
-            steps {
-                sh 'npm install'
-                sh 'npm run build -- --minify=false'
-            }
-        }
 
         
 
