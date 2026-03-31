@@ -41,7 +41,6 @@
       git:
         repo: "{{ github_repo }}"
         dest: "{{ app_path }}"
-        version: laravel
         force: yes
     - name: Install Composer
       shell: |
