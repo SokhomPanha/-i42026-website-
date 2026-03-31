@@ -36,6 +36,7 @@ pipeline {
 
         stage('Deploy with Ansible') {
             steps {
+               sh'pwd && ls -la' // Debugging: Check current directory and contents
                
                 // This stage uses the playbooks.yml we fixed to install drivers and migrate
                 sh "ansible-playbook -i /etc/ansible/inventory.ini playbook.yml -v"
