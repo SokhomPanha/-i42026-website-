@@ -1,10 +1,10 @@
 - name: Deploy Laravel project SokhomPanha
   hosts: server
   become: yes
+
   vars:
     deploy_path: /var/www/SokhomPanha
     repo_url: https://github.com/SokhomPanha/-i42026-website-.git
-    server_name: 178.128.93.188
 
   tasks:
     - name: Add safe directory for git
@@ -18,13 +18,13 @@
         force: yes
 
     - name: Install Composer dependencies
-      command: composer install --no-dev --no-interaction
+      command: composer install --no-dev --no-interaction --optimize-autoloader
       args:
         chdir: "{{ deploy_path }}"
       environment:
         COMPOSER_ALLOW_SUPERUSER: "1"
 
-    - name: Copy .env file
+    - name: Copy .env file if not exists
       copy:
         src: "{{ deploy_path }}/.env.example"
         dest: "{{ deploy_path }}/.env"
@@ -32,15 +32,23 @@
         force: no
 
     - name: Generate application key
-      command: php artisan key:generate
+      command: php artisan key:generate --force
       args:
         chdir: "{{ deploy_path }}"
 
-    - name: Ensure PHP SQLite driver is installed
-      apt:
-        name: php-sqlite3
-        state: present
-        update_cache: yes
+    # ✅ Clean SQLite database (IMPORTANT FIX)
+    - name: Remove old SQLite database
+      file:
+        path: "{{ deploy_path }}/database/database.sqlite"
+        state: absent
+
+    - name: Recreate SQLite database file
+      file:
+        path: "{{ deploy_path }}/database/database.sqlite"
+        state: touch
+        owner: www-data
+        group: www-data
+        mode: '0664'
 
     - name: Create database directory
       file:
@@ -48,26 +56,24 @@
         state: directory
         mode: '0755'
 
-    - name: Create SQLite database file
-      file:
-        path: "{{ deploy_path }}/database/database.sqlite"
-        state: touch
-        owner: www-data
-        group: www-data
-        mode: '0777'
-
-    - name: Run database migrations
-      command: php artisan migrate --force
+    # ✅ Use migrate:fresh to avoid table conflicts
+    - name: Run database migrations (fresh)
+      command: php artisan migrate:fresh --force
       args:
         chdir: "{{ deploy_path }}"
 
-    - name: Install NPM dependencies
-      command: npm install
+    - name: Install frontend dependencies
+      command: npm ci
       args:
         chdir: "{{ deploy_path }}"
 
     - name: Build frontend assets
       command: npm run build
+      args:
+        chdir: "{{ deploy_path }}"
+
+    - name: Optimize Laravel
+      command: php artisan config:cache
       args:
         chdir: "{{ deploy_path }}"
 
