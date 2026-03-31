@@ -1,0 +1,11 @@
+APP_NAME="SokhomPanha Laravel"
+APP_ENV=production
+APP_KEY=
+APP_DEBUG=false
+APP_TIMEZONE=UTC
+APP_URL=http://178.128.93.188/SokhomPanha
+DB_CONNECTION=sqlite
+DB_DATABASE=/var/www/html/SokhomPanha/database/database.sqlite
+CACHE_STORE=file
+SESSION_DRIVER=file
+QUEUE_CONNECTION=database
