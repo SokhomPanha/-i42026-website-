@@ -1,5 +1,5 @@
 - name: Deploy Laravel Application
-  hosts: i4bserver
+  hosts: server
   become: yes
   vars:
     deploy_user: root
